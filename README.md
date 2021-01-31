@@ -1,8 +1,11 @@
 # Nido_oplmanager
-OPL Manager for Linux at SHELL
 
-IN BETA !!!
+OPL Manager para Linux em SHELL EM BETA!!!
 
-OPL Manager para Linux em SHELL
+./Nido_oplmanager < PATH OPL >
 
-EM BETA!!!
+EX:
+Caso as pastas do OPL estaja na raiz:
+
+
+./Nido_oplmanager /media/pendrive/
