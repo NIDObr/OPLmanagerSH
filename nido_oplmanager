@@ -1,11 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #------------------------------------------------------------------
 # Author: nido
 # More: < https://github.com/NIDObr >
-# Version: 0.1.7-beta 22/01/2021
+# Version: 0.1.8-beta 07/03/2021
 # Tested on:
-#	GNU bash, versão 4.4.20(1)-release (x86_64-pc-linux-gnu)
+#	GNU bash, versão 5.0.17(1)-release (x86_64-pc-linux-gnu)
 # Info: OPL MANAGER for linux
 # License: BSD-3-Clause License
 #------------------------------------------------------------------
@@ -22,55 +22,30 @@ tmp_list="/tmp/${RANDOM}.opl" # TMP file
 #----------------------------Functions-----------------------------
 
 game_manager(){
-	if $(echo "$1" | egrep -q "([A-Z]{4}\_[0-9]{3}\.[0-9]{2}\.([A-Z|a-z|0-9| |\-]|[\(\)\.\!\'\,]){1,}\.[a-z|A-Z]{3})");then	# Check if the name is already formatted
-		return 2
-	else
+	# Check if the name is already formatted
+	if ! $(echo "$1" | egrep -q "([A-Z]{4}\_[0-9]{3}\.[0-9]{2}\.([A-Z|a-z|0-9| |\-]|[\(\)\.\!\'\,]){1,}\.[a-z|A-Z]{3})");then	
 		local id=$(cat "$1" | egrep -a -o -m 1 "([A-Z]{4}\_[0-9]{3}\.[0-9]{2})") # Extract the game ID
-		[ -z "$id" ] && return 3 # Check if you have a valid ID.
+		# Check if you have a valid ID.
+		[ -z "$id" ] && return 2
 	fi
-	local id_data=$(printf '%s\n' "${id}" | awk -F "_" '{print $2}' | awk -F "." '{print $1$2}') # convert the format used in the database (from: 213.12 to: 21312)
-	local url_db='https://psxdatacenter.com/' # main "database" url
-	local pal_2='psx2/plist2.html'
-	local ntsc_e2='psx2/jlist2.html'
-	local ntsc_u2='psx2/ulist2.html'
-	local pal_1='plist.html'
-	local ntsc_u1='ulist.html'
-	local ntsc_j1='jlist.html'
+	# Vars
+	local ps1_db="database/ps1_database"
+	local ps2_db="database/ps2_database"
 	local disc="$3"
 	local cont='1'
 	local pre='0'
-	case "${disc}" in
-		"/DVD/"|"/CD/")
-			for db_region in "${ntsc_u2}" "${ntsc_e2}" "${pal_2}";do
-				local info=$(curl "${url_db}${db_region}" 2>&1 | grep -a -m 1 "${id_data}") # check if the game is in the database
-				if $(printf '%s\n' "$info" | grep -q "INFO");then
-					local info_url=$(printf '%s\n' "${info}" | awk -F "\"" '{print $10}')
-					local name=$(curl "${url_db}/psx2/${info_url}" 2>&1 | grep -A 2 "OFFICIAL TITLE" | grep "nbsp;" | awk -F ";" '{print $2}' | awk -F "<" '{print $1}')
-					break
-				fi
-				local name=$(curl "${url_db}${db_region}" 2>&1 | grep -a -A 1 "${id_data}" | grep "nbsp" | awk -F ";" '{print $2}' | awk -F "<" '{print $1}') # get the name of the database
-				break
-			done
-		;;
-		"/POPS/")
-			for db_region in "${ntsc_u1}" "${ntsc_j1}" "${pal_1}";do
-				local info=$(curl "${url_db}${db_region}" 2>&1 | grep -a -m 1 "${id_data}") # check if the game is in the database
-				if $(printf '%s\n' "${info}" | grep -q "INFO");then
-					local info_url=$(printf '%s\n' "${info}" | awk -F "\"" '{print $10}')
-					local info_page=$(curl -s "${url_db}${info_url}" 2>&1)
-					local name=$(printf '%s\n' "${info_page}" | grep -A 2 "Official Title" | grep "nbsp;" | awk -F ";" '{print $2}' | awk -F '<' '{print $1}')
-					break
-				fi
-				local name=$(curl "${url_db}${db_region}" 2>&1 | grep -a -A 1 "${id_data}" | grep "nbsp" | awk -F ";" '{print $2}' | awk -F "<" '{print $1}') # get the name of the database
-				break
-			done
-		;;
-	esac
-	if [ -z "${name}" ];then # If the game is not in the database, just add the ID.
+	# Search by id
+	if [ ${disc} == "/POPS/" ];then
+		name=$(grep $id $ps1_db)
+	else
+		name=$(grep $id $ps2_db)
+	fi
+	# If the game is not in the database, just add the ID.
+	if [ -z "${name}" ];then
 		printf '%s\n' "Jogo não encontrado no banco de dados: "
 		new_name="${id}.$(echo "${1}" | awk -F "${disc}" '{print $2}' | awk -F "." '{print $1}')"
 	else
-		new_name="${id}.${name}"
+		new_name="${name}"
 	fi
 	if [ "${disc}" = "/POPS/" ];then # Change the extension.
 		local format="VCD"
@@ -101,4 +76,5 @@ for disc_type in "/DVD/" "/CD/" "/POPS/";do	# Check the directories for games
 	fi
 done
 rm "${tmp_list}"
+
 
