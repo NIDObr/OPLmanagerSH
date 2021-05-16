@@ -23,10 +23,16 @@ tmp_list="/tmp/${RANDOM}.opl" # TMP file
 
 game_manager(){
 	# Check if the name is already formatted
-	if ! $(echo "$1" | egrep -q "([A-Z]{4}\_[0-9]{3}\.[0-9]{2}\.([A-Z|a-z|0-9| |\-]|[\(\)\.\!\'\,]){1,}\.[a-z|A-Z]{3})");then	
+	if $(echo "$1" | egrep -q "([A-Z]{4}\_[0-9]{3}\.[0-9]{2}\.([A-Z|a-z|0-9| |\-]|[\(\)\.\!\'\,]){1,}\.[a-z|A-Z]{3})");then	
+		printf '%s\n' "$1"
+		return
+	else
 		local id=$(cat "$1" | egrep -a -o -m 1 "([A-Z]{4}\_[0-9]{3}\.[0-9]{2})") # Extract the game ID
 		# Check if you have a valid ID.
-		[ -z "$id" ] && return 2
+		[ -z "$id" ] && { 
+			printf '%s\n' "$1 - Does not have a valid id."
+			return 1
+		}
 	fi
 	# Vars
 	local ps1_db="database/ps1_database"
@@ -63,7 +69,8 @@ game_manager(){
 
 > "${tmp_list}"
 for disc_type in "/DVD/" "/CD/" "/POPS/";do	# Check the directories for games
-	if [ "${disc_type}" = "/POPS/" ];then	# If it is PS1 run:
+
+	if [ ${disc_type} == "/POPS/" ];then	# If it is PS1 run:
 		for pops in $(ls "${opl_path}${disc_type}"*.VCD 2>/dev/null | sed -r 's/ /+_/g');do
 			old_name=$(printf '%s\n' "${pops}" | sed -r 's/\+\_/ /g')	# Old name
 			game_manager "$old_name" "${opl_path}" "${disc_type}" "${arts_path}"	# Call main function
