@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#------------------------------------------------------------------
+# By NidoBr
+# GitHub: < https://github.com/NIDObr >
+# Email: coqecoisa@gmail.com
+# Version: 0.2 23/01/2022
+# Info: Generates list with name and id of PS2 and PS1 games, based on https://psxdatacenter.com/
+# License: BSD-3-Clause License
+#------------------------------------------------------------------
+
+tmp_dir=$(mktemp -d)
+declare -A psxdatacenter_urls
+psxdatacenter_urls=(
+	[ps2_ntscj]='https://psxdatacenter.com/psx2/jlist2.html'
+	[ps2_ntscu]='https://psxdatacenter.com/psx2/ulist2.html'
+	[ps2_pal]='https://psxdatacenter.com/psx2/plist2.html'
+	[psx_ntscj]='https://psxdatacenter.com/jlist.html'
+	[psx_ntscu]='https://psxdatacenter.com/ulist.html'
+	[psx_pal]='https://psxdatacenter.com/plist.html'
+)
+
+
+for url_get in "${!psxdatacenter_urls[@]}";do
+	printf "${url_get} = ${psxdatacenter_urls[${url_get}]} "
+	curl "${psxdatacenter_urls[${url_get}]}" 2>/dev/null > "${tmp_dir}/${url_get}.html" && printf "Ok\n" || printf "Fail\n"
+
+	for id in $(cat "${tmp_dir}/${url_get}.html" | grep -E -o '([A-Z]{4}\-[0-9]{5})');do
+		info=$(cat "${tmp_dir}/${url_get}.html" | grep -a -m 1 "${id}") # check if the game is in the database
+		if [ "$previa" == "$id" ];then
+			previa="$id"
+		else
+			previa="$id"
+			f_id=$(echo $id | awk -F "" '{print $1$2$3$4"_"$6$7$8"."$9$10}')
+			name=$(cat "${tmp_dir}/${url_get}.html" | grep -a -A 1 "${id}" | grep -a "nbsp" | awk -F ";" '{print $2}' | awk -F "<" '{print $1}'  | awk -F "&nbsp" '{print $1}') # get the name of the database
+			echo "${f_id}.${name}"
+		fi
+	done
+done
+
