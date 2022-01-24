@@ -22,8 +22,10 @@ psxdatacenter_urls=(
 
 for url_get in "${!psxdatacenter_urls[@]}";do
 	printf "${url_get} = ${psxdatacenter_urls[${url_get}]} "
-	curl "${psxdatacenter_urls[${url_get}]}" 2>/dev/null > "${tmp_dir}/${url_get}.html" && printf "Ok\n" || printf "Fail\n"
-
+	curl "${psxdatacenter_urls[${url_get}]}" 2>/dev/null > "${tmp_dir}/${url_get}.html" || {
+		printf "Fail\n"
+		continue
+	}
 	for id in $(cat "${tmp_dir}/${url_get}.html" | grep -E -o '([A-Z]{4}\-[0-9]{5})');do
 		info=$(cat "${tmp_dir}/${url_get}.html" | grep -a -m 1 "${id}") # check if the game is in the database
 		if [ "$previa" == "$id" ];then
@@ -32,8 +34,12 @@ for url_get in "${!psxdatacenter_urls[@]}";do
 			previa="$id"
 			f_id=$(echo $id | awk -F "" '{print $1$2$3$4"_"$6$7$8"."$9$10}')
 			name=$(cat "${tmp_dir}/${url_get}.html" | grep -a -A 1 "${id}" | grep -a "nbsp" | awk -F ";" '{print $2}' | awk -F "<" '{print $1}'  | awk -F "&nbsp" '{print $1}') # get the name of the database
-			echo "${f_id}.${name}" >> "${url_get}"
+			# Responsible for formatting the name
+			name=${name,,}
+			name=($name)
+			echo "${f_id}.${name[@]^}" >> ${url_get}
 		fi
 	done
+	printf "Ok\n"
 done
 
